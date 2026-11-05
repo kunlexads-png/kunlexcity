@@ -1,0 +1,6 @@
+{
+  "name": "KunlexCity - PrimeNest Realty",
+  "description": "Premium full-stack real estate listing, management, and AI property recommendation platform with role-based access for agents, buyers, owners, tenants, and administrators.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
