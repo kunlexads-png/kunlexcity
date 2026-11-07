@@ -3,6 +3,7 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import cors from 'cors';
 
 // Import Controllers
 import * as authCtrl from './backend/src/controllers/authController.js';
@@ -22,6 +23,24 @@ const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
+  // CORS configuration for Vercel frontend
+const allowedOrigins = [
+  'https://kunlexcity.vercel.app',
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+app.options('*', cors());
   // AI Studio Dev server must run on port 3000
   const PORT = Number(process.env.PORT) || 3000;
 
@@ -41,6 +60,8 @@ async function startServer() {
   // ----------------------------------------------------
   app.post('/api/auth/register', authCtrl.register);
   app.post('/api/auth/login', authCtrl.login);
+  app.post('/api/auth/verify-email', authCtrl.verifyEmail);
+app.post('/api/auth/resend-verification', authCtrl.resendVerification);
   app.get('/api/auth/me', authenticateToken, authCtrl.getMe);
   app.post('/api/auth/switch-demo', authCtrl.switchDemoRole);
   app.post('/api/auth/forgot-password', authCtrl.forgotPassword);
