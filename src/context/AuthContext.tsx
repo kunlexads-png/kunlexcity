@@ -65,14 +65,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (payload: { name: string; email: string; password: string; phone?: string }) => {
-    const res = await api.auth.register(payload);
-    if (res.success) {
-      setStoredToken(res.token);
-      setToken(res.token);
-      setUser(res.user);
-    }
-  };
+  const register = async (payload: {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+}) => {
+  await api.auth.register(payload);
+};
 
   const logout = () => {
     removeStoredToken();

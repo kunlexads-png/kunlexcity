@@ -1,3 +1,4 @@
+
 // KunlexCity - PrimeNest Realty
 // Prisma Relational Database Schema
 
@@ -88,18 +89,23 @@ enum MaintenanceStatus {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  passwordHash  String
-  name          String
-  role          Role     @default(CLIENT)
-  phone         String?
-  avatar        String?
-  bio           String?
-  licenseNumber String?
-  agencyName    String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                       String    @id @default(uuid())
+  email                    String    @unique
+  passwordHash             String
+  name                     String
+  role                     Role      @default(CLIENT)
+  phone                    String?
+  avatar                   String?
+  bio                      String?
+  licenseNumber            String?
+  agencyName               String?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  // Email verification fields
+  emailVerified            Boolean   @default(false)
+  emailVerificationToken   String?   @unique
+  emailVerificationExpires DateTime?
 
   // Relationships
   ownedProperties      Property[]           @relation("PropertyOwner")
@@ -136,9 +142,9 @@ model Property {
   bathrooms      Int
   toilets        Int
   parkingSpaces  Int            @default(2)
-  propertySize   Decimal        @db.Decimal(10, 2) // sqm
-  landSize       Decimal?       @db.Decimal(10, 2) // sqm
-  amenities      String[] // e.g. ["24/7 Power", "Swimming Pool", "CCTV"]
+  propertySize   Decimal        @db.Decimal(10, 2)
+  landSize       Decimal?       @db.Decimal(10, 2)
+  amenities      String[]
   images         String[]
   status         PropertyStatus @default(AVAILABLE)
   approvalStatus ApprovalStatus @default(PENDING)
