@@ -93,7 +93,7 @@ export const AuthPage: React.FC = () => {
     setSuccessMsg('');
 
     try {
-      const response = await api.resendVerification(normalizedEmail);
+      const response = await api.auth.resendVerification(normalizedEmail);
 
       setSuccessMsg(
         response.message ||
