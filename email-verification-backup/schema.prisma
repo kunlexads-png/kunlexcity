@@ -1,0 +1,300 @@
+// KunlexCity - PrimeNest Realty
+// Prisma Relational Database Schema
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  CLIENT
+}
+
+enum ListingType {
+  SALE
+  RENT
+  LEASE
+}
+
+enum PropertyStatus {
+  AVAILABLE
+  UNDER_OFFER
+  SOLD
+  RENTED
+}
+
+enum ApprovalStatus {
+  APPROVED
+  PENDING
+  REJECTED
+}
+
+enum InquiryStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum AppointmentType {
+  IN_PERSON
+  VIRTUAL_TOUR
+}
+
+enum TransactionType {
+  SALE
+  RENTAL
+  LEASE
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+  PARTIAL
+}
+
+enum MaintenanceCategory {
+  PLUMBING
+  ELECTRICAL
+  HVAC_AC
+  STRUCTURAL
+  SECURITY
+  OTHER
+}
+
+enum MaintenancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  EMERGENCY
+}
+
+enum MaintenanceStatus {
+  SUBMITTED
+  IN_REVIEW
+  TECHNICIAN_ASSIGNED
+  RESOLVED
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  name          String
+  role          Role     @default(CLIENT)
+  phone         String?
+  avatar        String?
+  bio           String?
+  licenseNumber String?
+  agencyName    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relationships
+  ownedProperties      Property[]           @relation("PropertyOwner")
+  assignedProperties   Property[]           @relation("PropertyAgent")
+  inquiries            Inquiry[]            @relation("UserInquiries")
+  assignedInquiries    Inquiry[]            @relation("AgentInquiries")
+  appointments         Appointment[]        @relation("UserAppointments")
+  assignedAppointments Appointment[]        @relation("AgentAppointments")
+  transactions         Transaction[]        @relation("AgentTransactions")
+  tenancies            Tenancy[]            @relation("TenantTenancies")
+  maintenanceRequests  MaintenanceRequest[] @relation("TenantMaintenance")
+  favourites           Favourite[]
+  auditLogs            AuditLog[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Property {
+  id             String         @id @default(uuid())
+  title          String
+  slug           String         @unique
+  description    String
+  category       String
+  listingType    ListingType    @default(SALE)
+  price          Decimal        @db.Decimal(14, 2)
+  currency       String         @default("NGN")
+  country        String         @default("Nigeria")
+  state          String
+  city           String
+  area           String
+  address        String
+  bedrooms       Int
+  bathrooms      Int
+  toilets        Int
+  parkingSpaces  Int            @default(2)
+  propertySize   Decimal        @db.Decimal(10, 2) // sqm
+  landSize       Decimal?       @db.Decimal(10, 2) // sqm
+  amenities      String[] // e.g. ["24/7 Power", "Swimming Pool", "CCTV"]
+  images         String[]
+  status         PropertyStatus @default(AVAILABLE)
+  approvalStatus ApprovalStatus @default(PENDING)
+  featured       Boolean        @default(false)
+  viewsCount     Int            @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  // Relationships
+  ownerId      String?
+  owner        User?         @relation("PropertyOwner", fields: [ownerId], references: [id])
+  agentId      String?
+  agent        User?         @relation("PropertyAgent", fields: [agentId], references: [id])
+  inquiries    Inquiry[]
+  appointments Appointment[]
+  transactions Transaction[]
+  tenancies    Tenancy[]
+  favourites   Favourite[]
+
+  @@index([city, state])
+  @@index([listingType, price])
+  @@index([approvalStatus, status])
+}
+
+model Inquiry {
+  id                     String        @id @default(uuid())
+  propertyId             String
+  property               Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  userId                 String?
+  user                   User?         @relation("UserInquiries", fields: [userId], references: [id])
+  assignedAgentId        String?
+  assignedAgent          User?         @relation("AgentInquiries", fields: [assignedAgentId], references: [id])
+  name                   String
+  email                  String
+  phone                  String
+  message                String
+  preferredContactMethod String        @default("WHATSAPP")
+  status                 InquiryStatus @default(NEW)
+  responseNotes          String?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  @@index([propertyId])
+  @@index([assignedAgentId])
+  @@index([status])
+}
+
+model Appointment {
+  id              String            @id @default(uuid())
+  propertyId      String
+  property        Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  userId          String?
+  user            User?             @relation("UserAppointments", fields: [userId], references: [id])
+  assignedAgentId String?
+  assignedAgent   User?             @relation("AgentAppointments", fields: [assignedAgentId], references: [id])
+  clientName      String
+  clientEmail     String
+  clientPhone     String
+  inspectionDate  DateTime
+  inspectionTime  String
+  inspectionType  AppointmentType   @default(IN_PERSON)
+  notes           String?
+  status          AppointmentStatus @default(PENDING)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([propertyId])
+  @@index([assignedAgentId])
+  @@index([inspectionDate])
+}
+
+model Transaction {
+  id                    String          @id @default(uuid())
+  propertyId            String
+  property              Property        @relation(fields: [propertyId], references: [id])
+  agentId               String?
+  agent                 User?           @relation("AgentTransactions", fields: [agentId], references: [id])
+  transactionType       TransactionType
+  amount                Decimal         @db.Decimal(14, 2)
+  currency              String          @default("NGN")
+  buyerOrTenantName     String
+  buyerOrTenantEmail    String
+  buyerOrTenantPhone    String?
+  agentCommissionRate   Decimal         @default(5.00) @db.Decimal(5, 2)
+  agentCommissionAmount Decimal         @default(0) @db.Decimal(14, 2)
+  paymentStatus         PaymentStatus   @default(PAID)
+  referenceNumber       String          @unique
+  notes                 String?
+  transactionDate       DateTime        @default(now())
+  createdAt             DateTime        @default(now())
+
+  @@index([propertyId])
+  @@index([agentId])
+}
+
+model Tenancy {
+  id               String        @id @default(uuid())
+  propertyId       String
+  property         Property      @relation(fields: [propertyId], references: [id])
+  tenantId         String
+  tenant           User          @relation("TenantTenancies", fields: [tenantId], references: [id])
+  leaseStartDate   DateTime
+  leaseEndDate     DateTime
+  annualRent       Decimal       @db.Decimal(14, 2)
+  depositAmount    Decimal       @db.Decimal(14, 2)
+  paymentFrequency String        @default("ANNUAL")
+  paymentStatus    PaymentStatus @default(PENDING)
+  agreementUrl     String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([propertyId])
+  @@index([tenantId])
+}
+
+model MaintenanceRequest {
+  id          String              @id @default(uuid())
+  propertyId  String
+  tenantId    String
+  tenant      User                @relation("TenantMaintenance", fields: [tenantId], references: [id])
+  category    MaintenanceCategory @default(PLUMBING)
+  priority    MaintenancePriority @default(MEDIUM)
+  description String
+  images      String[]
+  status      MaintenanceStatus   @default(SUBMITTED)
+  adminNotes  String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([propertyId])
+  @@index([tenantId])
+  @@index([status])
+}
+
+model Favourite {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, propertyId])
+  @@index([userId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  userName  String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  details   String
+  ipAddress String?
+  timestamp DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+}
